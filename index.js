@@ -139,7 +139,7 @@ function handleButtonPress(data) {
     const button = getButtonNumber(data);
     if (button > 0) {
         const now = Date.now();
-        if (button !== lastButtonPress.button || (now - lastButtonPress.time) >= 1000) {
+        if (button !== lastButtonPress.button || (now - lastButtonPress.time) >= 1) {
             lastButtonPress.time = now;
             lastButtonPress.button = button;
             console.log('Button pressed:', button);

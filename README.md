@@ -1,4 +1,4 @@
-# Infinitton iDisplay Control
+# oDisplay
 
 A Node.js application to control the Infinitton iDisplay device. This will be updated with a GUI and lots of functionality, this is just a proof of concept for now.
 
