@@ -1,0 +1,13 @@
+{
+  "name": "infinitton-control",
+  "version": "1.0.0",
+  "description": "Control Infinitton iDisplay buttons",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "jimp": "^0.22.12",
+    "node-hid": "^2.1.2"
+  }
+}
