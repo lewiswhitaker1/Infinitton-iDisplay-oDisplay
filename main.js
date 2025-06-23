@@ -3,6 +3,9 @@ const path = require('path');
 const Jimp = require('jimp');
 const InfinittonDevice = require('./infinitton');
 const ConfigManager = require('./configManager');
+const HID = require('node-hid');
+const fs = require('fs');
+const { PowerShell } = require('node-powershell');
 
 let mainWindow;
 let device;
@@ -92,8 +95,8 @@ async function createWindow() {
         
         console.log('Creating main window...');
         mainWindow = new BrowserWindow({
-            width: 1024,
-            height: 768,
+            width: 760,
+            height: 880,
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -178,17 +181,46 @@ ipcMain.handle('setBrightness', async (event, brightness) => {
     }
 });
 
-ipcMain.handle('setButtonImage', async (event, { buttonIndex, imagePath }) => {
+ipcMain.handle('setButtonImage', async (event, { buttonIndex, imagePath, imageData, isIcon }) => {
     try {
         const dev = await ensureDevice();
+        const BUTTON_SIZE = 72;
+        const PADDING_PERCENT = 10; 
         
-        
-        const image = await Jimp.read(imagePath);
-        image.rotate(90).flip(false, true).resize(72, 72);
+        let image;
+        if (imagePath) {
+            
+            image = await Jimp.read(imagePath);
+            image.rotate(90).flip(false, true).resize(BUTTON_SIZE, BUTTON_SIZE);
+        } else if (imageData) {
+            
+            const buffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            image = await Jimp.read(buffer);
+            
+            if (isIcon) {
+                
+                const paddedSize = Math.floor(BUTTON_SIZE * (1 - PADDING_PERCENT / 100));
+                const padding = Math.floor((BUTTON_SIZE - paddedSize) / 2);
+                
+                
+                const paddedImage = new Jimp(BUTTON_SIZE, BUTTON_SIZE, 0x000000FF);
+                
+                
+                image.resize(paddedSize, paddedSize);
+                
+                
+                paddedImage.composite(image, padding, padding);
+                image = paddedImage;
+            } else {
+                image.resize(BUTTON_SIZE, BUTTON_SIZE);
+            }
+        } else {
+            throw new Error('No image data provided');
+        }
         
         
         const { data } = image.bitmap;
-        const bgrBuffer = Buffer.alloc(72 * 72 * 3);
+        const bgrBuffer = Buffer.alloc(BUTTON_SIZE * BUTTON_SIZE * 3);
         for (let i = 0, j = 0; i < data.length; i += 4, j += 3) {
             bgrBuffer[j] = data[i + 2];
             bgrBuffer[j + 1] = data[i + 1];
@@ -198,12 +230,13 @@ ipcMain.handle('setButtonImage', async (event, { buttonIndex, imagePath }) => {
         
         
         const base64 = await image.getBase64Async(Jimp.MIME_PNG);
-        
         await configManager.updateButton(buttonIndex, {
             type: 'image',
             base64: base64,
-            color: null
+            color: null,
+            isIcon: isIcon
         });
+        
         return true;
     } catch (error) {
         console.error('Error setting button image:', error);
@@ -224,5 +257,48 @@ ipcMain.handle('setButtonColor', async (event, { buttonIndex, color }) => {
     } catch (error) {
         console.error('Error setting button color:', error);
         return false;
+    }
+});
+
+ipcMain.handle('extractAppIcon', async (event, appPath) => {
+    const ps = new PowerShell({
+        executionPolicy: 'Bypass',
+        noProfile: true
+    });
+
+    const tempDir = path.join(app.getPath('temp'), 'infinitton-icons');
+    const tempIconPath = path.join(tempDir, `icon-${Date.now()}.png`);
+
+    try {
+        
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        
+        const script = `
+            Add-Type -AssemblyName System.Drawing
+            $icon = [System.Drawing.Icon]::ExtractAssociatedIcon("${appPath.replace(/\\/g, '\\\\')}")
+            $bitmap = $icon.ToBitmap()
+            $bitmap.Save("${tempIconPath.replace(/\\/g, '\\\\')}", [System.Drawing.Imaging.ImageFormat]::Png)
+            $icon.Dispose()
+            $bitmap.Dispose()
+        `;
+
+        await ps.invoke(script);
+        
+        
+        const iconBuffer = fs.readFileSync(tempIconPath);
+        const base64Icon = `data:image/png;base64,${iconBuffer.toString('base64')}`;
+        
+        
+        fs.unlinkSync(tempIconPath);
+        
+        return base64Icon;
+    } catch (error) {
+        console.error('Failed to extract icon:', error);
+        return null;
+    } finally {
+        await ps.dispose();
     }
 });

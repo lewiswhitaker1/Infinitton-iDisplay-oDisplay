@@ -9,8 +9,12 @@
   },
   "dependencies": {
     "electron": "^28.3.3",
+    "gif-frames": "^1.0.1",
+    "icon-extractor": "^1.0.3",
     "jimp": "^0.22.12",
-    "node-hid": "^2.2.0"
+    "node-hid": "^2.2.0",
+    "node-powershell": "^5.0.1",
+    "sharp": "^0.34.2"
   },
   "devDependencies": {
     "electron-rebuild": "^3.2.9"

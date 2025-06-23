@@ -4,7 +4,7 @@ const os = require('os');
 
 class ConfigManager {
     constructor() {
-        // Use %APPDATA% for Windows (will fallback to appropriate locations for other OS)
+        
         const appDataPath = process.env.APPDATA || (
             process.platform === 'darwin' 
                 ? path.join(os.homedir(), 'Library', 'Application Support')
@@ -16,7 +16,7 @@ class ConfigManager {
         console.log('Config file path:', this.configFile);
         
         this.saveTimeout = null;
-        this.SAVE_DELAY = 100; // 100ms delay
+        this.SAVE_DELAY = 100; 
     }
 
     async initialize() {
@@ -103,7 +103,7 @@ class ConfigManager {
         this.debouncedSave();
     }
 
-    // Clean up method to ensure final save happens
+    
     async cleanup() {
         console.log('Running configuration cleanup');
         if (this.saveTimeout) {
@@ -113,4 +113,4 @@ class ConfigManager {
     }
 }
 
-module.exports = ConfigManager; 
+module.exports = ConfigManager;
