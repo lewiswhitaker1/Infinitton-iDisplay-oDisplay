@@ -279,6 +279,9 @@ actionButtons.forEach(button => {
             case 'folder':
                 convertToFolder();
                 break;
+            case 'clear':
+                clearButtonConfiguration();
+                break;
         }
     });
 });
@@ -573,3 +576,44 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+async function clearButtonConfiguration() {
+    if (!currentButtonNumber) return;
+
+    const buttonNumberToClear = currentButtonNumber;
+    closeModal(); 
+
+    
+    try {
+        console.log(`Sending request to clear button ${buttonNumberToClear}`);
+        await ipcRenderer.invoke('clearButton', buttonNumberToClear);
+    } catch (error) {
+        console.error('Failed to clear device button:', error);
+        alert(`Error clearing button ${buttonNumberToClear}.`);
+    }
+
+    
+    delete buttonConfigs[buttonNumberToClear];
+
+    
+    localStorage.setItem('buttonConfigs', JSON.stringify(buttonConfigs));
+
+    
+    const buttonCell = document.querySelector(`[data-button="${buttonNumberToClear}"]`);
+    if (buttonCell) {
+        
+        const content = buttonCell.querySelector('.button-content');
+        if (content) {
+            content.remove();
+        }
+        
+        
+        const img = buttonCell.querySelector('img');
+        if(img) {
+            img.remove();
+        }
+
+        
+        buttonCell.style.backgroundColor = '#2a2a2a';
+    }
+}

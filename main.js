@@ -1,8 +1,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const Jimp = require('jimp');
-const InfinittonDevice = require('./infinitton');
-const ConfigManager = require('./configManager');
+const InfinittonDevice = require('./modules/device/infinitton');
+const ConfigManager = require('./modules/device/application/configManager');
 const HID = require('node-hid');
 const fs = require('fs');
 const { PowerShell } = require('node-powershell');
@@ -256,6 +256,34 @@ ipcMain.handle('setButtonColor', async (event, { buttonIndex, color }) => {
         return true;
     } catch (error) {
         console.error('Error setting button color:', error);
+        return false;
+    }
+});
+
+ipcMain.handle('clearButton', async (event, buttonIndex) => {
+    try {
+        const dev = await ensureDevice();
+        const BUTTON_SIZE = 72;
+
+        
+        const blankImage = new Jimp(BUTTON_SIZE, BUTTON_SIZE, 0x000000FF);
+        const { data } = blankImage.bitmap;
+        const bgrBuffer = Buffer.alloc(BUTTON_SIZE * BUTTON_SIZE * 3);
+        for (let i = 0, j = 0; i < data.length; i += 4, j += 3) {
+            bgrBuffer[j] = data[i + 2]; 
+            bgrBuffer[j + 1] = data[i + 1]; 
+            bgrBuffer[j + 2] = data[i]; 
+        }
+        
+        
+        await dev.setButtonImage(buttonIndex, bgrBuffer);
+
+        
+        await configManager.clearButton(buttonIndex);
+
+        return true;
+    } catch (error) {
+        console.error(`Error clearing button ${buttonIndex}:`, error);
         return false;
     }
 });

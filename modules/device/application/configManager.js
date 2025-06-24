@@ -103,7 +103,20 @@ class ConfigManager {
         this.debouncedSave();
     }
 
-    
+    async clearButton(buttonId) {
+        console.log(`Clearing configuration for button ${buttonId}`);
+        const button = this.config.buttons.find(b => b.id === buttonId);
+        if (button) {
+            
+            const defaultConfig = this.getDefaultConfig().buttons.find(b => b.id === buttonId);
+            
+            Object.assign(button, defaultConfig);
+            this.debouncedSave();
+        } else {
+            console.warn(`Button ${buttonId} not found in configuration to clear`);
+        }
+    }
+
     async cleanup() {
         console.log('Running configuration cleanup');
         if (this.saveTimeout) {
